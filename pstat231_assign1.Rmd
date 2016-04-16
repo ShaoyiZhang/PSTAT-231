@@ -1,0 +1,294 @@
+---
+title: "Solutions to HW 1"
+author: "Shaoyi Zhang"
+date: "April 15th, 2016"
+output: pdf_document
+---
+
+## Question 1.a
+    It is a data mining task. This is a classification problem. 
+    It requires analysis on different attributes of a customer.
+## Question 1.b
+    It is NOT a data mining task. This is just calculation. 
+    There's not much knowledge discovered in this problem.
+## Question 1.c
+    It is a data mining task. 
+    This problem uses previous data to predict new data.
+## Question 1.d
+    It is NOT a data mining task. 
+    There's no knew information or knowledege discovered in this activity.
+## Question 1.e
+    It is NOT a data mining task. 
+    If the dies fair, then all sides have same probability.
+
+## Question 2.a
+From the data description we know that this data set contains 506 observations and 13 variables.
+
+The description of the variables and their corresponding unit is listed bellow:
+
+    1. CRIM      per capita crime rate by town
+    
+    2. ZN        proportion of residential land zoned for lots over
+                 25,000 sq.ft.
+    
+    3. INDUS     proportion of non-retail business acres per town
+    
+    4. CHAS      Charles River dummy variable (= 1 if tract bounds
+                 river; 0 otherwise)
+    
+    5. NOX       nitric oxides concentration (parts per 10 million)
+    
+    6. RM        average number of rooms per dwelling
+    
+    7. AGE       proportion of owner-occupied units built prior to 1940
+    
+    8. DIS       weighted distances to five Boston employment centres
+    
+    9. RAD       index of accessibility to radial highways
+    
+    10. TAX      full-value property-tax rate per $10,000
+    
+    11. PTRATIO  pupil-teacher ratio by town
+    
+    12. B        1000(Bk - 0.63)^2 where Bk is the proportion of blacks
+                 by town
+    
+    13. LSTAT    % lower status of the population
+    
+    14. MEDV     Median value of owner-occupied homes in $1000's
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(gridExtra)
+library(class)
+library(ISLR)
+setwd("/Users/Shawn/Desktop/PSTAT 231/assign1/")
+getwd()
+houseData = read.table("housing.data")
+Boston.Housing = as.data.table(houseData)
+setnames(Boston.Housing,c("Crime.Rate","ResiLand.Zoned","NonRetail.Bus","Charles.River","Nitr.Oxide","Avg.Rooms", "Age", "Wigh.Dist","Access.Idex","Tax","Pupil.Teacher","Blck","Lower.Sts","Med.Value"))
+
+##  [1] "Crime.Rate"   "ResiLand.Zoned" "NonRetail.Bus"  "Charles.River"
+##  [5] "Nitr.Oxide"   "Avg.Rooms"      "Age"            "Wigh.Dist"
+##  [9] "Access.Idex"  "Tax"            "Pupil.Teacher"  "Blck"
+## [13] "Lower.Sts"    "Med.Value"
+nrow(Boston.Housing)
+summary(Boston.Housing)
+hist(Boston.Housing$Med.Value,xlab = "median value of owner-occupied homes", main = "Histogram of median home value based on Boston Housing Data")
+```
+
+
+
+```{r}
+hist1 = qplot(Boston.Housing$Med.Value)+geom_histogram(binwidth=10,color="black",fill="cornflowerblue")+labs(x = "Median value of owner-occupied homes")
+
+hist2 = qplot(Boston.Housing$Med.Value)+geom_histogram(binwidth=5,color="black",fill="cornflowerblue")+labs(x = "Median value of owner-occupied homes")
+
+hist3 = qplot(Boston.Housing$Med.Value)+geom_histogram(binwidth=2.5,color="black",fill="cornflowerblue")+labs(x = "Median value of owner-occupied homes")
+
+hist4 = qplot(Boston.Housing$Med.Value)+geom_histogram(binwidth=1.25,color="black",fill="cornflowerblue")+labs(x = "Median value of owner-occupied homes")
+
+grid.arrange(hist1,hist2,hist3,hist4,top="Histogram of median home value based on Boston Housing Data")
+
+```
+## Question 2.a
+
+As we gradually increase the number of bins, binwidth decrease and the histgram looks more similar to the probablity distribution graph of median value of owner-occupied homes.
+
+## Question 2.e
+```{r}
+mean(Boston.Housing$Med.Value)
+
+median(Boston.Housing$Med.Value)
+
+sd(Boston.Housing$Med.Value)
+
+IQR(Boston.Housing$Med.Value)
+
+```
+
+Median probably better decribes the median home value. Since the standard deviation is quite large, mean may not be useful.
+
+Take the median of median make sense. Because the original median is the median of a particular town. The new median is the median of those town's median.
+
+## Question 2.f
+```{r}
+CrimeRate.rank = cut(x = Boston.Housing$Crime.Rate,breaks = 5)
+df = data.frame(rank = CrimeRate.rank, Med.value = Boston.Housing$Med.Value)
+ggplot(data = df, aes(x = CrimeRate.rank, y = Med.value))+geom_boxplot()
+```
+
+## Question 3.a
+
+```{r}
+auto = data.table(as.data.frame(Auto))
+medMPG = median(auto$mpg)
+#mpgtemp = Auto$mpg
+#mpgtemp[<medMPG] = 1
+#auto[]
+auto$mpg01 = Auto$mpg
+auto$mpg01[auto$mpg < medMPG] = "low"
+auto$mpg01[auto$mpg > medMPG] = "high"
+auto$mpg01 = factor(auto$mpg01, levels = c("low","high"),labels = c(0,1))
+
+# create dataset with mpg01
+autoNoLabel = subset(auto,select = -mpg01)
+#for (xCol in names(autoNoLabel)){
+#  ggplot(data = autoNoLabel, aes(x=xCol,y=mpg01))+geom_boxplot()
+#}
+
+#box0 = ggplot(data = auto, aes(x = mpg, y = mpg01))+geom_boxplot()
+```
+
+## Questiong 3.b
+I don't think name will have any thing to do with mpg.
+Even if the brand is associated with mpg, brand will highly correlated with origin
+
+# Scatterplot
+
+```{r,echo=F}
+s1 = qplot(data=auto,cylinders,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s2 = qplot(data=auto,displacement,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s3 = qplot(data=auto,horsepower,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s4 = qplot(data=auto,weight,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s5 = qplot(data=auto,acceleration,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s6 = qplot(data=auto,year,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+s7 = qplot(data=auto,origin,mpg01,color=mpg01,main="scatterplot for cylinders",geom=c("point","jitter"))
+grid.arrange(s1,s2,s3,s4,s5,s6,s7,top="Scatterplots")
+```
+
+From the scatterplot, we notice that variable year,acceleration cannot classify mpg01 well.
+
+# Boxplot
+```{r,echo=F}
+box1 = ggplot(data = auto, aes(x = cylinders, y = mpg01))+geom_boxplot()
+# cylinders - mpg01 significant relationship
+box2 = ggplot(data = auto, aes(x = horsepower, y = mpg01))+geom_boxplot()
+# horsepower - weak relationship
+box3 = ggplot(data = auto, aes(x = displacement, y = mpg01))+geom_boxplot()
+# displacement - moderate relationship
+box4 = ggplot(data = auto, aes(x = weight, y = mpg01))+geom_boxplot()
+# weight - weak relationship
+box5 = ggplot(data = auto, aes(x = acceleration, y = mpg01))+geom_boxplot()
+# weight - weak relationship
+box6 = ggplot(data = auto, aes(x = year, y = mpg01))+geom_boxplot()
+# year - strong relationship
+box7 = ggplot(data = auto, aes(x = origin, y = mpg01))+geom_boxplot()
+# origin - strong relationship
+grid.arrange(box1,box2,box3,box4,box5,box6,box7)
+
+```
+
+According to boxplots, cylinders, year and origin is highly associated with mpg01
+
+# Histogram
+```{r,echo=F}
+histAuto1 = qplot(auto$cylinders)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for cylinders")
+histAuto2 = qplot(auto$displacement)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for displacement")
+histAuto3 = qplot(auto$horsepower)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for horsepower")
+histAuto4 = qplot(auto$weight)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for weight")
+histAuto5 = qplot(auto$acceleration)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for acceleration")
+histAuto6 = qplot(auto$year)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for year")
+histAuto7 = qplot(auto$origin)+geom_histogram(color="black",fill="cornflowerblue")+labs(x = "Histogram for origin")
+grid.arrange(histAuto1,histAuto2,histAuto3,histAuto4,histAuto5,histAuto6,histAuto7)
+```
+
+In summary, we will use cylinders, horsepower and origin for further association analysis.
+
+## Question 3.c
+
+```{r}
+set.seed(1)
+numOfObs = dim(auto)[1]
+numOfObs
+index.train = sample(1:numOfObs,floor(numOfObs*0.75),replace = F)
+index.test = setdiff(1:numOfObs,index.train)
+train.set = auto[index.train, ]
+test.set = auto[index.test, ]
+class.train=auto[index.train,"mpg01"]
+class.test=auto[index.test,"mpg01"]
+dim(train.set)
+dim(test.set)
+```
+
+## Question 3.d
+```{r}
+require(class)
+vars = c("cylinders","horsepower","origin")
+newdf = data.frame(auto)
+X = newdf[,vars]
+responseY = as.matrix(as.numeric(newdf[,"mpg01"]))
+
+#X = data.frame(subset(auto,select = vars))
+#responseY = as.matrix(auto[,mpg01])
+str(responseY)
+dim(X)
+dim(responseY)
+
+MiscError <- function(X,responseY,m,n){
+  # Args:
+  # X: dataset with explanatory variables 
+  # responseY : lables
+  # m: max value for nearest neighbors
+  # n: Number of times cross-validation is conducted
+  
+  error.cv <- list()
+  for(i in 1:n){
+    
+    # Training data
+    index <- sample(dim(X)[1],size = floor(dim(X)[1]*0.75), replace = F)
+    train.set <- X[index,]
+    
+    # Test data
+    index.test <- setdiff(1:dim(X)[1],index)
+    test.set <- X[index.test,]
+    
+    # Vector of classes
+    class.train <- responseY[index,]
+    class.test <- responseY[index.test,]
+    
+    # For this given samples fit k-NN model for several values of k
+    
+    knn.error <- vector()  # initialize vector
+    for (j in 1:m){  # m: Maximum number of values of k
+      model.knn <- knn(train = train.set,
+                       test = test.set,
+                       cl = class.train,
+                       k=j,
+                       prob=T)  # Fit model
+      error <- table(model.knn,class.test)
+      # Compute Error
+      knn.error[j] <- (error[1,2] + error[2,1])/sum(error)
+    }
+    error.cv[[i]] <- knn.error
+  }
+  return(error.cv)
+}
+CrossValid <- MiscError(X,responseY,m=30,n=5)
+class(CrossValid)
+names(CrossValid) <- paste("Sample",1:5) # Assign names
+
+# Plot error curves
+matplot(data.frame(CrossValid), type = "l", lty=1,
+        ylab = "Error Rate", 
+        xlab = "k",
+        main = "Cross-Validation Test Error")
+abline(v=3, lty=2)
+```
+
+K = 3 seems to perform the best on this data set.
+
+## Question 4.a
+
+Definition of KDD: KDD stands for "knoledge discovery in databases". KDD covers the overall process of discovering useful knowledge from data. The goal of KDD is to extract high-level, interperable and useful data from low-level, tedious, noisy data. KDD process include but not limited to obtain and process data, exploratory analysis and hypothesis selecting, data mining and interpretation, and finally make use of discovered knowledge. Moreover, KDD emphasis on automating the whole knowledge discovery process. 
+
+Definition of Data Mining: Data Mining is a process of discovering knowlege from data. Data Mining involves fitting model, or finding pattern from, observed data. Data obtaining, cleaning and preprocessing are not considered as parts of Data Mining. 
+
+Relation: Data Mining is a component of KDD. In my opinion, other parts in KDD process are preparation or results of Data Mining step.
+
+## Question 4.b
+Since we are in the "Big Data" era, the authors suggests that the amonut of data is overloaded. It is slow, expensive and even impossible for manual data probing of some large data set. Thus, the substantial amount of information(data) explains the necessity of KDD.
+
+# Question 4.c
+The author mentioned FAIS -- Financial Crimes Enforcement Network. The objective of FAIS is to discover previously unknown, potentially high-value leads for possible investigation. In this system, designers integrated AI algorithm to predict potential crime so that the police and FBI can react faster. This system also has special hardware setting.
