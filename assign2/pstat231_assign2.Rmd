@@ -1,0 +1,12 @@
+---
+title: "Solutions to HW 2"
+author: "Shaoyi Zhang"
+date: "April 15th, 2016"
+output: pdf_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE)
+```
+
+
