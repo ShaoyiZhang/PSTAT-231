@@ -8,5 +8,49 @@ output: pdf_document
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE)
 ```
+```{r}
+library(ISLR)
+library(ggplot2)
+library(data.table)
+```
+
+```{r}
+summary(iris)
+
+RawData = iris
+RawData$Species = as.numeric(RawData$Species)
+str(RawData)
+apply(RawData,2,var)
+#apply(RawData[1:(dim(RawData)[2]-1),],2,var)
+#apply(predictorX,2,var)
+#(dim(RawData)[2]-1)
+head(RawData) #  See first elements of iris data set
+predictorX = subset(RawData,select = -Species)
+#predictorX = iris[,1:4]
+responseY = subset(RawData,select = Species)
+#str(predictorX)
+#responseY <- as.matrix(RawData[,dim(RawData)[2]])
+#predictorX <- as.matrix(RawData[,1:(dim(RawData)[2]-1)])
+
+pr.out = prcomp(predictorX, center = T, scale=T)
+summary(pr.out)
+pr.out$rotation
+
+#names(pr.out)
+plot(pr.out,type="l")
+biplot(pr.out,scale = 0)
+pr.var = pr.out$sdev^2
+pr.var
+pve = pr.var/sum(pr.var)
+pve
+#cumsum(pve)
+```
 
 
+```{r}
+plot(pve, xlab = " Principal Componet ", ylab = " Proportion of Variance Explained ", ylim = c(0,1),type = 'b')
+
+```
+
+## Additional Exercise PSTAT 231
+### Question 1
