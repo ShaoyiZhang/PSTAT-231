@@ -2,7 +2,7 @@
 title: "Solutions to HW 2"
 author: "Shaoyi Zhang"
 date: "April 15th, 2016"
-output: pdf_document
+output: html_document
 ---
 
 ```{r global_options, include=FALSE}
@@ -21,16 +21,10 @@ RawData = iris
 RawData$Species = as.numeric(RawData$Species)
 str(RawData)
 apply(RawData,2,var)
-#apply(RawData[1:(dim(RawData)[2]-1),],2,var)
-#apply(predictorX,2,var)
-#(dim(RawData)[2]-1)
+
 head(RawData) #  See first elements of iris data set
 predictorX = subset(RawData,select = -Species)
-#predictorX = iris[,1:4]
 responseY = subset(RawData,select = Species)
-#str(predictorX)
-#responseY <- as.matrix(RawData[,dim(RawData)[2]])
-#predictorX <- as.matrix(RawData[,1:(dim(RawData)[2]-1)])
 
 pr.out = prcomp(predictorX, center = T, scale=T)
 summary(pr.out)
@@ -39,17 +33,226 @@ pr.out$rotation
 #names(pr.out)
 plot(pr.out,type="l")
 biplot(pr.out,scale = 0)
-pr.var = pr.out$sdev^2
-pr.var
-pve = pr.var/sum(pr.var)
-pve
+
 #cumsum(pve)
 ```
 
+## Question 1.2
 
+Dimension means which variable contribute most to the variance 
+
+## Question 1.c
+```{r,}
+require(devtools)
+install_github("vqv/ggbiplot")
+
+library(ggbiplot)
+RawData = iris
+RawData$Species = as.numeric(RawData$Species)
+
+iris.pca <- prcomp(subset(RawData,select = -Species), scale. = TRUE)
+ggbiplot(iris.pca, obs.scale = 1, var.scale = 1,
+  groups = iris$Species, ellipse = TRUE, circle = TRUE) +
+  scale_color_discrete(name = '') +
+  theme(legend.direction = 'horizontal', legend.position = 'top')
+```
+
+## Question 1.d
+```{r,warning=F}
+pr.var = pr.out$sdev^2
+pve = pr.var/sum(pr.var)
+pve
+```
+##### The PVE of the first pricipal component is 
+```{r,echo=F}
+pve[1]
+```
+
+##### The PVE of the second pricipal component is
+```{r,echo=F}
+pve[2]
+```
+
+##### Plot for PVE:
+```{r,echo=FALSE}
+plot(pve, xlab = " Principal Component ", ylab = " Proportion of Variance Explained ", ylim = c(0,1),type = 'b')
+
+```
+
+
+## Question 2.a
 ```{r}
-plot(pve, xlab = " Principal Componet ", ylab = " Proportion of Variance Explained ", ylim = c(0,1),type = 'b')
+require(class)
+require(boot)
 
+train <- rbind(iris3[,,1], iris3[,,2], iris3[,,3])
+cl <- factor(c(rep("s",50), rep("c",50), rep("v",50)))
+model = knn.cv(train, cl, k = 3)
+attributes(.Last.value)
+str(model)
+
+responseY <- as.matrix(iris[,dim(iris)[2]])
+predictorX <- as.matrix(iris[,1:(dim(iris)[2]-1)])
+
+# Using the spam dataset
+names(predictorX)
+table(responseY)
+
+# LpO cross-validation FNN package
+#res.knn.cv <- knn.cv(data = predictorX, label = responseY, k = 7, p = 1, method = "classification")
+#res.knn.cv$risk
+#head(res.knn.cv$error.ind)
+#f=10
+  #MSE_KNN = vector()
+  #for (j in 1:f){
+  #model.knn = knn.cv(train = iris, cl = iris$Species, k = j)
+  #MSE_KNN[i]= model.knn$delta[1]
+#}
+
+
+# First, we need to find the number of folds to be used in LOOCV
+
+GetFoldIndex <- function(input,numOffolds){
+  # This function creates a vector of indexes that corresponds to numOffolds 
+  # equal size sub-samples taken from 
+  # Args:
+  # input: data set with explanatory variables and class variable
+  # numOffolds: Number of folds (number of sub-samples)
+  
+  n <- dim(input)[1] # Number of observations
+  print(n)
+  
+  # vector of folds lables
+  folds <- rep(1:numOffolds,each=floor(n/numOffolds)) 
+  remainder <- n-length(folds)
+  
+  # number of folds might not be a multiple of total number of obs. so
+  # we assign remaining obs to a fold systematically: i.e. 1st goes to fold 1, etc
+  if(remainder>0){
+    folds <- c(folds,1:remainder)
+  }
+
+  # we finally permute indexes
+  folds <- sample(folds)
+
+  return(folds)
+}
+
+temp <- GetFoldIndex(iris,numOffolds=10)
+#knn.error = table(temp)
+knn.error = vector()
+str(iris$Species)
+require(class)
+# Second, We iteratively perform the KNN classification
+
+MiscErrorKNN <- function(X,responseY,m,n){
+  # Args:
+  # X: dataset with explanatory variables 
+  # responseY : lables
+  # m: max value for nearest neighbor
+  # n: Number of folds
+  
+  error.cv <- list()
+  #  Add index of sub-samples for n-fold validation
+  
+  data.set <-  data.frame(X,responseY,Fold=GetFoldIndex(X,numOffolds = n)) 
+    
+  #  100% observations plus vector of subsamples
+  for(i in 1:n){
+      
+    # Training data
+    train.set <- subset(data.set, Fold != i)[,colnames(X)]
+      
+    # Test data
+    test.set <- subset(data.set, Fold == i)[,colnames(X)]
+      
+    # Vector of classes
+    class.train <- subset(data.set,Fold != i)[,"responseY"]
+    class.test <- subset(data.set,Fold == i)[,"responseY"]
+      
+    # For these given samples fit k-NN model for several values of k
+    knn.error <- vector()  # initialize vector
+    for (j in 1:m){  # m: Maximum number of values of k
+      model.knn <- knn(train = train.set,
+                       test = test.set,
+                       cl = class.train,
+                       k=j,
+                       prob=T)  # Fit model
+      error <- table(model.knn,class.test)
+      # Compute Error
+      knn.error[j] <- (error[1,2] + error[2,1])/sum(error)
+      #return(knn.error)
+    }
+    error.cv[[i]] <- knn.error
+  }
+  return(error.cv)
+}
+
+
+responseY <- as.matrix(iris[,dim(iris)[2]])
+predictorX <- as.matrix(iris[,1:(dim(iris)[2]-1)])
+#predictorX <- as.factor(I)
+  #  Compute Errors using up to k=30 nearest neighbors 10 times   
+  CrossValid <- MiscErrorKNN(X = predictorX,     # Explanaory Variables
+                             responseY = responseY,  # labels
+                             m=50,                  # Maximum value of k, for k-NN
+                             n=10)                  # Number of folds (subsamples)
+  summary(CrossValid)
+  str(responseY)
+  class(CrossValid)
+  names(CrossValid) <- paste("Sample",1:10) # Assign names
+  
+  # Save plot in a pdf file
+  # it will be stored in the setwd() user specified directory
+  #pdf(file="crosval.pdf",width=12,height=9)
+  
+  # Plot error curves
+  #op <- par(mfrow = c(2,1)) # chance graphical device to include 2 plots
+                            # 2 rows, 1 column
+  matplot(data.frame(CrossValid), type = "l", lty=1,
+          ylab = "Error Rate", 
+          xlab = "k",
+          main = "10-Fold Misclassification Test Error")
+  
+  
+  
+  # To get the estimated value of k we average over estimated  error from
+  # the 10 estimated models
+  
+  mean.error <- apply(data.frame(CrossValid),1,mean)  # Get the mean for each k
+  lines(mean.error,lwd=2)
+  
+  boxplot(t(data.frame(CrossValid)))  # Box plot of errors
+  lines(1:50,mean.error, type = "l",lwd=2, col = "red") #  Add mean
+  title(paste("10-Fold Avg. Cross Validation Error: Local minimum: k=",which.min(mean.error)), 
+        xlab = "k (No. of Nearest Neighbors)", 
+        ylab = "Misclassification Error")
+  
+  # Place lines to indicate minimum average error and value of k
+  abline(h=mean.error[which.min(mean.error)],
+         v = which.min(mean.error),
+         col = "gray",lty = 2)
+  points(which.min(mean.error),mean.error[which.min(mean.error)],
+         pch = 19,col = "blue",cex=1)
+  
+  # add legend
+  legend("topright",c("Avg. Error"),lty = 1,col="red",lwd=2)
+  
+  #par(op)  # restore graphic device
+  
+  #dev.off() # Stop writing in the pdf
+
+
+
+
+
+
+
+#for (j in 1:m){
+#  model.knn = knn.cv(train = iris, cl = iris$Species, k = j)
+#  error = table(model.knn,iris$Species)
+#  knn.error[j] = (error[1,2] + error[2,1])/sum(error)
+#}
 ```
 
 ## Additional Exercise PSTAT 231
