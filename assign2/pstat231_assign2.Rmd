@@ -2,10 +2,10 @@
 title: "Solutions to HW 2"
 author: "Shaoyi Zhang"
 date: "April 15th, 2016"
-output: html_document
+output: pdf_document
 ---
 
-```{r global_options, include=FALSE}
+```{r global_options, include=FALSE,warning=F}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE)
 ```
 ```{r}
@@ -14,58 +14,67 @@ library(ggplot2)
 library(data.table)
 ```
 
+## Question 1.a
 ```{r}
+# First, we should have a big picture of the iris data set.
 summary(iris)
-
 RawData = iris
 RawData$Species = as.numeric(RawData$Species)
-str(RawData)
+# Take a glance of the variance of each feature
 apply(RawData,2,var)
-
-head(RawData) #  See first elements of iris data set
+# See first elements of iris data set
+head(RawData)
+# Partion feature matrix and label vector
 predictorX = subset(RawData,select = -Species)
 responseY = subset(RawData,select = Species)
-
+# perform the princle component analysis
 pr.out = prcomp(predictorX, center = T, scale=T)
-summary(pr.out)
-pr.out$rotation
 
-#names(pr.out)
-plot(pr.out,type="l")
-biplot(pr.out,scale = 0)
-
-#cumsum(pve)
 ```
 
-## Question 1.2
+```{r}
+# Summary of the PCA
+summary(pr.out)
+```
 
-Dimension means which variable contribute most to the variance
-At second PC, the loding of Sepal length is the greatest and the loading of Petal width and length is near zero. Thus, we can say PC2 is the dimension of Sepal.
+```{r}
+# The correlation between PCs and features
+pr.out$rotation
+```
 
+## Question 1.b
+
+For second PC, the loding of Sepal length is the greatest and the loading of Petal width and Petal length is near zero. Thus, we can say PC2 is the dimension of Sepal.
 
 ## Question 1.c
-```{r,}
+```{r}
 require(devtools)
 install_github("vqv/ggbiplot")
-
 library(ggbiplot)
 RawData = iris
 RawData$Species = as.numeric(RawData$Species)
-
 iris.pca <- prcomp(subset(RawData,select = -Species), scale. = TRUE)
+# Use ggbiplot to create PCA graph
 ggbiplot(iris.pca, obs.scale = 1, var.scale = 1,
   groups = iris$Species, ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top')
 ```
 
+From the first principle component, we notice that Sepal.Length, Petal.Length and Petal.Width are highly correlated. From the second pricinple component, we notice that Sepal.Width contribute the most, with a light correlation with Sepal.Length. The remaining two priciple component are not very useful, since they only explained 3.67% and 0.518% of the total variance.
+
+Setosa is different from other two species by Petal Length, Petal Width and Sepal.Length. It means that we can easily distinguish Setosa and the other two just by looking at the petal. Virginica and Versicolor can be distinguished by Sepal.Width. Virginica tends to have larger Sepal Width than Versicolor.
+
 ## Question 1.d
 ```{r,warning=F}
 pr.var = pr.out$sdev^2
+# Calculation of PVE
 pve = pr.var/sum(pr.var)
 pve
 ```
+
 ##### The PVE of the first pricipal component is 
+
 ```{r,echo=F}
 pve[1]
 ```
@@ -75,10 +84,8 @@ pve[1]
 pve[2]
 ```
 
-##### Plot for PVE:
 ```{r,echo=FALSE}
 plot(pve, xlab = " Principal Component ", ylab = " Proportion of Variance Explained ", ylim = c(0,1),type = 'b')
-
 ```
 
 
@@ -87,81 +94,108 @@ plot(pve, xlab = " Principal Component ", ylab = " Proportion of Variance Explai
 require(class)
 require(boot)
 df = data.frame(iris)
-df[,c(1,2,3,4)]
 X = df[,1:4]
 p.YTrain = NULL
 train.error.rate = NULL
-for(i in 1:50){
-  set.seed(1)
-  #XTrain = sample(x=iris[,1:4])
-  #p.YTest = knn(XTrain,X-XTrain,X[XTrain],k=i)
+for(i in 1:100){
+  set.seed(3)
   p.YTrain = knn.cv(train = X, cl = df$Species, k = i)
   train.error.rate[i] = mean(df$Species != p.YTrain)
 }
-which.min(train.error.rate)
-min(train.error.rate)
-require(data.table)
-Error.rates<-data.table("k"=1:50,"Train.error.rate"=test.error.rate)
 
-gg4<-ggplot(Error.rates)+geom_line(aes(x=k,y=Train.error.rate), color="Red")+xlab("k")+ylab("Error rates")+ggtitle("Train Error Rate (Red)")
+gg4<-ggplot(data.frame(x = 1:100,y = train.error.rate))+geom_line(aes(x=x,y=y), color="Red")+xlab("k")+ylab("Error rates")+ggtitle("Train Error Rate (Red)")+geom_vline(xintercept = which.min(train.error.rate),lty = "dashed")+geom_hline(yintercept = train.error.rate[which.min(train.error.rate)],lty="dashed")
 gg4
-train.error.rate
-
-myirisnumeric = iris[,1:4]
-myirisclass = iris[,5]
-str(myirisnumeric)
-str(myirisclass)
-myclassnumeric = as.numeric(myirisclass)
-str(myclassnumeric)
-myclassfactor = as.factor(myclassnumeric)
-knn.cv(iris[,1:4],cl=iris$Species,k=10)
 ```
+
+The minimum error rate for KNN on iris is 
+```{r,echo=F}
+min(train.error.rate)
+```
+where k = 
+```{r,echo=F}
+which.min(train.error.rate)
+```
+
 ## Question 2.b
 ```{r}
 require(MASS)
-  
 irisdf = data.frame(iris)
 train.error.rate = NULL
 lda.fit = lda(Species~.,data=irisdf,CV=T)
-names(lda.fit)
-lda.LOOCV<-data.table("LOOCV class"=lda.fit$class,"Post prob"=lda.fit$posterior)
-for (i in 1:dim(irisdf)[1]){
-  train.error.rate[i] = mean(irisdf$Species != lda.LOOCV$`LOOCV class`)
-}
-
-lda.fit$class
-gglda = ggplot(lda.LOOCV)+geom_line(aes(x=))
-
-str(lda.LOOCV)
-which.min(train.error.rate)
-min(train.error.rate)
-require(data.table)
-Error.rates<-data.table("k"=1:50,"Train.error.rate"=test.error.rate)
-
-gg4<-ggplot(Error.rates)+geom_line(aes(x=k,y=Train.error.rate), color="Red")+xlab("k")+ylab("Error rates")+ggtitle("Train Error Rate (Red)")
-gg4
-train.error.rate
-
-lda.pred = predict(lda.fit, irisdf)
-summary(lda.pred)
-
-
-Iris <- data.frame(rbind(iris3[,,1], iris3[,,2], iris3[,,3]),
-                   Sp = rep(c("s","c","v"), rep(50,3)))
-str(Iris)
-train <- sample(1:150, 75)
-table(Iris$Sp[train])
-## your answer may differ
-##  c  s  v
-## 22 23 30
-z <- lda(Sp ~ ., Iris, prior = c(1,1,1)/3, subset = train)
-predict(z, Iris[-train, ])$class
-##  [1] s s s s s s s s s s s s s s s s s s s s s s s s s s s c c c
-## [31] c c c c c c c v c c c c v c c c c c c c c c c c c v v v v v
-## [61] v v v v v v v v v v v v v v v
-(z1 <- update(z, . ~ . - Petal.W.))  
-
-  
+lda.error.rate = mean(irisdf$Species != lda.fit$class)
 ```
+
+The error rate for LDA on iris is
+```{r,echo=F}
+lda.error.rate
+```
+
+## Question 2.c
+
+Since minimum error rate for KNN and LDA are the same (2%) for iris data set, we will check the assumptions of these method. KNN has no assumption on data while LDA assumes the variables(feature) has a normal distribution. We need to take a look at the Q-Q plot of the iris data set.
+
+```{r,echo=FALSE}
+require(gridExtra)
+require(ggplot2)
+qq.plots = list()
+df = data.frame(iris)
+
+qqplot1 = ggplot(df, aes(sample = df[,1])) + stat_qq()
+qqplot2 = ggplot(df, aes(sample = df[,2])) + stat_qq()
+qqplot3 = ggplot(df, aes(sample = df[,3])) + stat_qq()
+qqplot4 = ggplot(df, aes(sample = df[,4])) + stat_qq()
+
+# Display for Q-Q plots simultaneously
+grid.arrange(qqplot1,qqplot2,qqplot3,qqplot4,top="Q-Q plot for iris data set")
+```
+
+It is obvious that the variable "Petal.Length" and "Petal.Width" is NOT normally distributed. Thus, it is better to use KNN for iris data set.
+
+## Question 2.d
+
+##### The prediciton of KNN is versicolor and setosa.
+
+```{r}
+df = data.frame(iris)
+X = df[,1:4]
+test = data.frame(rbind(c(4,2.5,3.0,0.5),c(6,4.0,1.8,1.5)))
+colnames(test) = names(iris)[1:4]
+
+# Peform KNN with optimal k = 14
+knn(train=X, test = test, cl=df$Species, k = 14)
+```
+
+
+##### The prediciton of LDA is versicolor and setosa.
+
+```{r}
+test = data.frame(rbind(c(4,2.5,3.0,0.5),c(6,4.0,1.8,1.5)))
+colnames(test) = names(iris)[1:4]
+
+irisdf = data.frame(iris)
+train.error.rate = NULL
+lda.fit = lda(Species~.,data=irisdf,CV=F)
+
+# Perform LDA
+predict(lda.fit,test)$class
+```
+
+
+
 ## Additional Exercise PSTAT 231
-### Question 1
+
+## Question 1
+
+There is a need for fast and accurate face recognition system in airpots and hotels. However, previous face recogntion solutions are inaccurate and lacks scalability.
+
+## Question 2
+
+Professor Turk (currently at UCSB CS department) used Principle Component Analysis to find a low dimensional representation of the complex, multidimensional pictures. In the paper, he only mentioned the brightness, the color of the pixels are variables in the analysis. I think there might be much more features used in Eigenface, but the importance of Eigenface is about PCA instead of various features.
+
+## Qustion 3
+
+Since PCA transform the dimension from x*y pixels into the number of images in the training set, Eigenface is much quicker than other face recognition technologies. Eigenface evalute faces by the distnace between the feature vector of input images and the pre-accomplished face space. If they are far away, it means the input image is not a known face and vice versa.
+
+## Question 4
+
+Eigenface approach requires specific orientation of the face image (can't work with upsidedown faces). This approach also requires a lot of images of the same person shooted from different angles so that the algorithmn can generate a "ghost" like face of that person.
