@@ -1,0 +1,83 @@
+---
+title: "Solutions to HW3"
+author: "Shaoyi Zhang"
+date: "April 30th, 2016"
+output: html_document
+---
+
+## Question 1
+
+```{r global_options, include=FALSE,warning=F}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE)
+```
+
+```{r}
+# set up data frame
+setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign3")
+spam = read.table("spambase.dat",header=T,sep="")
+summary(spam)
+spam$y = factor(spam$y,levels=c(0,1),labels=c("good","spam"))
+
+# partition the data set
+# train set size = sample size - 1000
+# test set size = 1000
+train_size <- floor(nrow(spam)-1000)
+
+# set the seed to make your partition reproductible
+set.seed(1)
+train_index <- sample(seq_len(nrow(spam)), size = train_size)
+
+train <- spam[train_index, ]
+test <- spam[-train_index, ]
+
+```
+
+Now, we can start build the decision tree
+
+```{r}
+require(tree)
+spam.tree = tree(y~.,data=train)
+#summary(spam.tree)
+```
+
+```{r, echo=FALSE}
+# plot the decision tree with no option
+plot(spam.tree)
+text(spam.tree,pretty = 0)
+```
+
+```{r}
+# make prediction on test set
+spam.tree.pred = predict(spam.tree,test,type="class")
+conti.table = table(spam.tree.pred,test$y)
+
+# construct error rate vector
+test.error.rates[model.index] = vector()
+model.index = 0
+
+# compute the test error rate
+test.error.rates[model.index] = (conti.table[3] + conti.table[2])/nrow(test)
+model.index = model.index + 1
+test.error.rates
+```
+
+Then, let's try a decision tree with options
+
+```{r}
+# decision tree with option
+spam.tree.option = tree(y~.,data=train,control=tree.control(nrow(spam),mincut=2,minsize=5,mindev=0.001))
+
+spam.tree.option.pred = predict(spam.tree.option,test,type="class")
+conti.table = table(spam.tree.option.pred,test$y)
+
+test.error.rates[model.index] = (conti.table[3] + conti.table[2])/nrow(test)
+model.index = model.index + 1
+test.error.rates
+```
+
+```{r}
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
