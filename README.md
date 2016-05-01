@@ -1,4 +1,4 @@
-# PSTAT-231
+# PSTAT 231 Data Mining
 
 ##Course Description
 
