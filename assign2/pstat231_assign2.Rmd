@@ -2,7 +2,7 @@
 title: "Solutions to HW 2"
 author: "Shaoyi Zhang"
 date: "April 15th, 2016"
-output: pdf_document
+output: html_document
 ---
 
 ```{r global_options, include=FALSE,warning=F}

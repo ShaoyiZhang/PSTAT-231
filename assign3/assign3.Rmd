@@ -2,7 +2,7 @@
 title: "Solutions to HW3"
 author: "Shaoyi Zhang"
 date: "April 30th, 2016"
-output: html_document
+output: pdf_document
 ---
 
 ## Question 1
@@ -37,26 +37,43 @@ Now, we can start build the decision tree
 ```{r}
 require(tree)
 spam.tree = tree(y~.,data=train)
-#summary(spam.tree)
+
+cv.tree(spam.tree,FUN=prune.misclass)
+```
+
+The optimal tree size is 11
+
+```{r}
+prune.spam.tree = prune.misclass(spam.tree,best = 11)
 ```
 
 ```{r, echo=FALSE}
-# plot the decision tree with no option
-plot(spam.tree)
+# plotting unpruned tree
+plot(spam.tree,main="")
+title(main=list("unpruned decision tree without option",cex=2,font=3))
 text(spam.tree,pretty = 0)
+
+# plot pruned tree
+plot(prune.spam.tree,main="pruned decision tree without option")
+title(main=list("pruned decision tree without option",cex=2,font=3))
+text(prune.spam.tree,pretty = 0)
 ```
 
 ```{r}
-# make prediction on test set
+# make prediction on test set(unpruned)
 spam.tree.pred = predict(spam.tree,test,type="class")
 conti.table = table(spam.tree.pred,test$y)
 
+# make prediction on test set(pruned)
+prune.pred = predict(prune.spam.tree,test,type="class")
+prune.conti.table = table(prune.pred,test$y)
+
 # construct error rate vector
-test.error.rates[model.index] = vector()
-model.index = 0
+test.error.rates = vector()
+model.index = 1
 
 # compute the test error rate
-test.error.rates[model.index] = (conti.table[3] + conti.table[2])/nrow(test)
+test.error.rates[model.index] = (prune.conti.table[3] + prune.conti.table[2])/nrow(test)
 model.index = model.index + 1
 test.error.rates
 ```
@@ -66,18 +83,57 @@ Then, let's try a decision tree with options
 ```{r}
 # decision tree with option
 spam.tree.option = tree(y~.,data=train,control=tree.control(nrow(spam),mincut=2,minsize=5,mindev=0.001))
+cv.tree(spam.tree.option,FUN=prune.misclass)
 
-spam.tree.option.pred = predict(spam.tree.option,test,type="class")
-conti.table = table(spam.tree.option.pred,test$y)
+# the optimal tree size is 91
+prune.spam.option = prune.misclass(spam.tree.option,best = 91)
+
+
+spam.option.pred = predict(prune.spam.option,test,type="class")
+conti.table = table(spam.option.pred,test$y)
 
 test.error.rates[model.index] = (conti.table[3] + conti.table[2])/nrow(test)
 model.index = model.index + 1
 test.error.rates
 ```
 
+Tree bagging model
 ```{r}
+install.packages("randomForest")
+library(randomForest)
+
+set.seed(1)
+bag.spam = randomForest(y~.,data=train,mtry=(ncol(train)-1),importance=T)
+bag.spam
+
+bag.pred = predict(bag.spam,test,type="class")
+bag.conti.table = table(bag.pred,test$y)
+
+test.error.rates[model.index] = (bag.conti.table[3] + bag.conti.table[2])/nrow(test)
+model.index = model.index + 1
+test.error.rates
+```
+
+Random Forest model
+```{r}
+set.seed(1)
+rand.spam = randomForest(y~.,data=train,mtry=floor(sqrt(ncol(test)-1)),importance=T)
+rand.spam
+
+rand.pred = predict(rand.spam,test,type="class")
+rand.conti.table = table(rand.pred,test$y)
+
+test.error.rates[model.index] = (conti.table[3] + conti.table[2])/nrow(test)
+model.index = model.index + 1
+test.error.rates
+```
+
+k-NN classification
+```{r}
+
+
 
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
