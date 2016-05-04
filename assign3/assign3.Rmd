@@ -130,10 +130,20 @@ test.error.rates
 
 k-NN classification
 ```{r}
+require(class)
+require(boot)
+require(ggplot2)
+p.YTrain = NULL
+train.error.rate = NULL
+for(i in 1:100){
+  set.seed(3)
+  # use test to determine optimal knn ??
+  p.YTrain = knn.cv(train = test[,1:(ncol(test)-1)], cl = test$y, k = i)
+  train.error.rate[i] = mean(train$y != p.YTrain)
+}
 
-
-
-
+gg4<-ggplot(data.frame(x = 1:100,y = train.error.rate))+geom_line(aes(x=x,y=y), color="Red")+xlab("k")+ylab("Error rates")+ggtitle("Train Error Rate (Red)")+geom_vline(xintercept = which.min(train.error.rate),lty = "dashed")+geom_hline(yintercept = train.error.rate[which.min(train.error.rate)],lty="dashed")
+gg4
+ 
 ```
-
 
