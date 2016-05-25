@@ -1,0 +1,39 @@
+---
+title: "assign4"
+author: "Shaoyi Zhang"
+date: "May 24, 2016"
+output: html_document
+---
+```{r}
+setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign4")
+set.seed(2)
+library(data.table)
+food.data = data.table()
+food.data = read.table("food.txt")
+for (i in 2:6){
+  food.data[,c(i)] = as.numeric(food.data[,c(i)])
+}
+str(food.data)
+
+```
+
+```{r}
+km.out = kmeans(food.data[2:6], centers = 3, nstart = 20)
+str(km.out$centers)
+str(km.out$cluster)
+maxK = 10
+centroids = vector()
+cluster.size = vector()
+for (k in 2:maxK){
+  km.out = kmeans(food.data[2:ncol(food.data)], centers = k, iter.max = 10, nstart = 20)
+  #centroids[k] = km.out$centers
+  cluster.size[k] = km.out$cluster
+}
+
+```
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

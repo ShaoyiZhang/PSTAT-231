@@ -15,7 +15,7 @@ knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE
 # set up data frame
 setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign3")
 spam = read.table("spambase.dat",header=T,sep="")
-summary(spam)
+#summary(spam)
 spam$y = factor(spam$y,levels=c(0,1),labels=c("good","spam"))
 
 # partition the data set
@@ -99,7 +99,7 @@ test.error.rates
 
 Tree bagging model
 ```{r}
-install.packages("randomForest")
+#install.packages("randomForest")
 library(randomForest)
 
 set.seed(1)
@@ -147,3 +147,55 @@ gg4
  
 ```
 
+## Part 3
+```{r}
+require(ROCR)
+require(data.table)
+bag.pred = data.table(predict(bag.spam,test,type="prob")[,-1])
+pred.bag = prediction(bag.pred,test$y)
+perf.bag = performance(pred.bag,measure="tpr",x.measure="fpr")
+plot(perf.bag,col="blue",lwd=3)
+
+rf.pred = data.table(predict(rand.spam,test,type="prob"))
+#rf.pred
+pred.rf = prediction(rf.pred[,c(spam)],test$y)
+perf.rf = performance(pred.rf,measure = "tpr",x.measure = "fpr")
+plot(perf.rf,lwd=3,add=T,col="green")
+
+knn.pred = knn(train[,-ncol(train)],test[,-ncol(test)],train$y,k=4,prob=T)
+knn.p=1-attributes(knn.pred)$prob
+knn.p[knn.p==0]=0
+#knn.p
+pred.knn = prediction(knn.p,test$y)
+#pred.knn
+perf.knn = performance(pred.knn,measure = "tpr",x.measure = "fpr")
+plot(perf.knn,lwd=3,add=T,col="red")
+legend(0.6,0.6,c('Bagging tree','random forest','k-NN'),col=c('blue','green','red'),lwd=3)
+```
+
+## Question 2
+```{r}
+require(ggplot2)
+funcs = ggplot(data.frame(x=c(0,1)),aes(x))
+GiniIndex = function(p){2*p*(1-p)}
+class.error = function(p) {min(p,(1-p))}
+# class error rate measuere is wierd
+
+cross.entropy = function(p) {-p*log(p)-(1-p)*log(1-p)}
+funcs + stat_function(fun=GiniIndex) + stat_function(fun=class.error) + stat_function(fun=cross.entropy) 
+```
+
+
+## Additional Questions for PSTAT 231
+## Question 3
+##### Majority vote approach:
+
+Among the 10 estimates, we have 4 prediction that has a probability less than 0.5. Since we have more estimates indicating "class is red", we conclude that the class is red.
+
+##### Average probabiltiy approach:
+
+The average probability among the 10 estimates is:
+```{r}
+(0.1+0.15+0.2+0.2+0.55+0.6+0.6+0.65+0.7+0.75)/10
+```
+Since the average probability is below 0.5, we conclude that the class is NOT red.
