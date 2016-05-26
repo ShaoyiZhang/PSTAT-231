@@ -8,8 +8,8 @@ output: html_document
 setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign4")
 set.seed(2)
 library(data.table)
-food.data = data.table()
-food.data = read.table("food.txt")
+#food.data = data.table()
+food.data = read.table("food.txt",header = T)
 for (i in 2:6){
   food.data[,c(i)] = as.numeric(food.data[,c(i)])
 }
@@ -18,19 +18,71 @@ str(food.data)
 ```
 
 ```{r}
+library(ggplot2)
 km.out = kmeans(food.data[2:6], centers = 3, nstart = 20)
 str(km.out$centers)
-str(km.out$cluster)
+list(km.out$size)
+
 maxK = 10
 centroids = vector()
-cluster.size = vector()
+cluster.size = list()
 for (k in 2:maxK){
   km.out = kmeans(food.data[2:ncol(food.data)], centers = k, iter.max = 10, nstart = 20)
   #centroids[k] = km.out$centers
-  cluster.size[k] = km.out$cluster
+  cluster.size[k-1] = list(km.out$size)
 }
+maxK = nrow(st.food)-1
+st.food=scale(food.data[c(2:6)])
+# k- means clustering loop
+ratiowss=vector()
+for (k in 2:maxK){
+  km=kmeans(st.food,k,nstart=50)
+  ratiowss[k]=km$tot.withinss/km$totss
+}
+dt=data.table("K"=2:maxK,"ratiowss"=ratiowss[2:maxK])
+ggplot(dt,aes(x=K,y=ratiowss))+geom_line(size=3)
+
+# use centers = 4 for further analysis
+km.out = kmeans(st.food,centers = 4)
+centers = data.table(km.out$centers)
+centers
+tCenters = t(centers)
+tCenters
+
+maxims=vector()
+for (i in 1:nrow(tCenters)){
+  maxims[i]=which.max(tCenters[i,])
+}
+maxims
+tCenters[1,]
+#tCenters=as.data.table(tCenters,keep.rownames = TRUE)
+#setnames(tCenters,"rn","Aliments")
+
+centers[,Group:=as.factor(c(1,2,3,4))]
+library(GGally)
+gpd <- ggparcoord(data = centers, columns = 1:5, groupColumn = 6)
+gpd
+
+
+#world=as.data.table(world)
+#world=world[,"Cluster":=km$cluster]
 
 ```
+
+
+```{r}
+pr.out = prcomp(food.data[2:6], center = T, scale=T)
+summary(pr.out)
+# The first 4 PC explained 99.97% of the variance
+library(ggbiplot)
+
+# Use ggbiplot to create PCA graph
+ggbiplot(pr.out, obs.scale = 1, var.scale = 1, 
+         ellipse = TRUE, circle = TRUE) +
+  scale_color_discrete(name = '') +
+  theme(legend.direction = 'horizontal', legend.position = 'top')
+```
+
 
 ```{r, echo=FALSE}
 plot(cars)
