@@ -12,32 +12,102 @@ knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE
 setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign4")
 set.seed(2)
 library(data.table)
-#food.data = data.table()
 food.data = read.table("food.txt",header = T,row.names = 1)
-#for (i in 2:6){
-#  food.data[,c(i)] = as.numeric(food.data[,c(i)])
-#}
+st.food = scale(food.data)
+```
 
+
+If we choose to have 2 clusters:
+
+```{r}
+km.2 = kmeans(food.data[2:ncol(food.data)], centers = 2, nstart = 50)
+
+# the centroids
+km.2$centers
+
+# The size of each center
+km.2$size
+
+# The ratio of between-SS/total-SS
+km.2$betweenss/km.2$totss
 ```
 
 ```{r}
-library(ggplot2)
-#km.out = kmeans(food.data[2:6], centers = 3, nstart = 20)
-##str(km.out$centers)
-#list(km.out$size)
+centers = as.data.table(km.2$centers)
+centers[,Group:=as.factor(c(1,2))]
+library(GGally)
+gpd <- ggparcoord(data = centers, columns = 1:4, groupColumn = 5)
+gpd
+```
 
+Group 1 has high Protein, Fat and Iron, but Low Calcium.
+
+Group 2 has High Calcium, but low Protein, Fat and Iron.
+
+```{r}
+# Group membership
+km.2$cluster
+```
+
+From the cluster membership, we noticed that Group 2 are all Canned fish. Since seafood tends to have high Calcium, our grouping is reasonable. But there are still many "fish" categorized in Group 1 which are mostly beef/lamb/chicken.
+
+
+Then, if we choose to have 3 clusters:
+
+```{r}
+km.3 = kmeans(food.data[2:ncol(food.data)], centers = 3, iter.max = 10, nstart = 50)
+
+# the centroids
+km.3$centers
+
+# The size of each center
+km.3$size
+
+# The ratio of between-SS/total-SS
+km.3$betweenss/km.2$totss
+```
+
+```{r}
+centers = as.data.table(km.3$centers)
+centers[,Group:=as.factor(c(1,2,3))]
+library(GGally)
+gpd <- ggparcoord(data = centers, columns = 1:4, groupColumn = 5)
+gpd
+```
+
+Group 1 have high Fat, medium Protein, but low Calcium and Iron.
+
+Group 2 have high Iron, medium Calcium, but low Protein and Fat.
+
+Group 3 have high Protein and Calicium, but low Fat and Iron.
+
+
+```{r}
+# Group membership
+km.3$cluster
+```
+
+
+```{r}
+km.4 = kmeans(food.data[2:ncol(food.data)], centers = 4, iter.max = 10, nstart = 50)
+
+# the centroids
+km.4$centers
+
+# The size of each center
+km.4$size
+
+# The ratio of between-SS/total-SS
+km.4$betweenss/km.2$totss
+```
+
+The ratio of between-SS/total-SS didn't inrease much when we increase K = 3 to K = 4. This means 3 clusters have differentiated our data set very well. We will continue our analysis with Optimal K = 3.
+
+Before we continue, it's also important to see the graph of the ratio of between-SS/total-SS
+
+```{r}
+library(ggplot2)
 maxK = 10
-centroids = list()
-cluster.size = list()
-#for (k in 2:maxK){
-  km.2 = kmeans(food.data[2:ncol(food.data)], centers = 2, iter.max = 10, nstart = 20)
-  centroids[k-1] = km.out$centers
-  cluster.size[k-1] = list(km.out$size)
-#}
-centroids
-km.out$centers
-#maxK = nrow(st.food)-1
-#maxK = 10
 st.food=scale(food.data[c(1:5)])
 # k- means clustering loop
 ratiowss=vector()
@@ -49,11 +119,15 @@ dt=data.table("K"=2:maxK,"ratiowss"=ratiowss[2:maxK])
 ggplot(dt,aes(x=K,y=ratiowss))+geom_line(size=3)
 ```
 
-Since there are only 27 data points in this data set, I think the number of clusters shouldn't be too large. Moreover, by PCA, I noticed that the first 4 principle components expained more than 99% of the variance in the data. Thus, I decide to use K = 4 for further analysis
+As we increase the number of cluster, the ratio of between-SS/total-SS will always increase. That's expected because when we add new centroids, there must be reduction in distance from some points to the new centriod.
+
+```{r,echo=F}
+#Since there are only 27 data points in this data set, I think the number of clusters shouldn't be too large. Moreover, by PCA, I noticed that the first 4 principle components expained more than 99% of the variance in the data. Thus, I decide to use K = 4 for further analysis
+```
 
 ```{r}
-# use clusters = 4 for further analysis
-km.out = kmeans(st.food,centers = 4)
+# use clusters = 3 for further analysis
+km.out = kmeans(st.food,centers = 3)
 centers = data.table(km.out$centers)
 ```
 
@@ -73,22 +147,25 @@ for (i in 1:nrow(tCenters)){
 maxims
 ```
 
+
+## Question 1.2
+
 ```{r}
-centers[,Group:=as.factor(c(1,2,3,4))]
-library(GGally)
-gpd <- ggparcoord(data = centers, columns = 1:5, groupColumn = 6)
-gpd
+# compute distance matrix
+dist.food = dist(st.food)
+
+library(gridExtra)
+
+cluster.single = hclust(dist.food,method = "single")
+plot(cluster.single)
+
+cluster.complete = hclust(dist.food,method = "complete")
+plot(cluster.complete)
+
+cluster.average = hclust(dist.food,method = "average")
+plot(cluster.average)
 ```
 
-According to the parallel coordinate plot of the centroids, we noticed that:
-
-Group 1 has high Calcium and very low Iron.
-
-Group 2 has high Protein and low Calcium.
-
-Group 3 has very low Protein, energy and fat, and very high Calcium and Iron.
-
-Group 4 has very high Energy and Fat, but very low Calcium.
 
 
 ```{r,echo=F}
@@ -96,6 +173,17 @@ Group 4 has very high Energy and Fat, but very low Calcium.
 # food.data[,"Cluster":=as.factor(km.out$cluster)]
 # gg2=ggplot(food.data,aes(x=X1,y=X2,color=Cluster,shape=Group,))+geom_point(size=3)
 # gg2+geom_point(aes(x=km.out$center[1,1],y=km.out$center[1,2]),size=4,color="black")+geom_point(aes(x=km.out$center[2,1],y=km.out$center[2,2]),size=4,color="black")+ annotate("text", x=km.out$center[1,1],y=km.out$center[1,2]-0.2, label = "Centroid 1")+ annotate("text", x=km.out$center[2,1],y=km.out$center[2,2]-0.2, label = "Centroid 2")+ggtitle("k-means clustering, k=2")+ theme(plot.title = element_text(size = rel(2)))
+
+
+#According to the parallel coordinate plot of the centroids, we noticed that:
+
+#Group 1 has high Calcium and very low Iron.
+
+#Group 2 has high Protein and low Calcium.
+
+#Group 3 has very low Protein, energy and fat, and very high Calcium and Iron.
+
+#Group 4 has very high Energy and Fat, but very low Calcium.
 ```
 
 ```{r}
@@ -114,21 +202,5 @@ pr.out
 ```
 
 
-
-```{r}
-# compute distance matrix
-dist.food = dist(st.food)
-
-library(gridExtra)
-
-cluster.single = hclust(dist.food,method = "single")
-plot(cluster.single)
-
-cluster.complete = hclust(dist.food,method = "complete")
-plot(cluster.complete)
-
-cluster.average = hclust(dist.food,method = "average")
-plot(cluster.average)
-```
 
 
