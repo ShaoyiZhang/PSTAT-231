@@ -2,12 +2,14 @@
 title: "assign4"
 author: "Shaoyi Zhang"
 date: "May 24, 2016"
-output: html_document
+output: pdf_document
 ---
 ```{r global_options, include=FALSE,warning=F}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',warning=FALSE)
 ```
 
+
+## Question 1.1
 ```{r}
 setwd("/Users/Shawn/Desktop/PSTAT 231/PSTAT-231/assign4")
 set.seed(2)
@@ -15,7 +17,6 @@ library(data.table)
 food.data = read.table("food.txt",header = T,row.names = 1)
 st.food = scale(food.data)
 ```
-
 
 If we choose to have 2 clusters:
 
@@ -121,10 +122,6 @@ ggplot(dt,aes(x=K,y=ratiowss))+geom_line(size=3)
 
 As we increase the number of cluster, the ratio of between-SS/total-SS will always increase. That's expected because when we add new centroids, there must be reduction in distance from some points to the new centriod.
 
-```{r,echo=F}
-#Since there are only 27 data points in this data set, I think the number of clusters shouldn't be too large. Moreover, by PCA, I noticed that the first 4 principle components expained more than 99% of the variance in the data. Thus, I decide to use K = 4 for further analysis
-```
-
 ```{r}
 # use clusters = 3 for further analysis
 km.out = kmeans(st.food,centers = 3)
@@ -133,28 +130,28 @@ centers = data.table(km.out$centers)
 
 Let's take a look at the centers of the clusters
 
-```{r}
-centers
-# transpose to make it more readable
-tCenters = t(centers)
-which.max(tCenters[1,])
-
-maxims=vector()
-for (i in 1:nrow(tCenters)){
-  maxims[i]=which.max(tCenters[i,])
-  print(which.max(tCenters[i,]))
-}
-maxims
+```{r,echo=F}
+# centers
+# # transpose to make it more readable
+# tCenters = t(centers)
+# which.max(tCenters[1,])
+# 
+# maxims=vector()
+# for (i in 1:nrow(tCenters)){
+#   maxims[i]=which.max(tCenters[i,])
+#   print(which.max(tCenters[i,]))
+# }
+# maxims
 ```
 
 
 ## Question 1.2
 
-```{r}
+Now, we will try Hierachical Clustering.
+
+```{r,echo=F}
 # compute distance matrix
 dist.food = dist(st.food)
-
-library(gridExtra)
 
 cluster.single = hclust(dist.food,method = "single")
 plot(cluster.single)
@@ -166,41 +163,52 @@ cluster.average = hclust(dist.food,method = "average")
 plot(cluster.average)
 ```
 
+In min-distance method, we get the dendrogram with the lowest height.
 
+In average-distance method, it tends to seperate one "outlier" out of the group in each split.
 
-```{r,echo=F}
-# food.data = as.data.table(food.data,keep.rownames = T)
-# food.data[,"Cluster":=as.factor(km.out$cluster)]
-# gg2=ggplot(food.data,aes(x=X1,y=X2,color=Cluster,shape=Group,))+geom_point(size=3)
-# gg2+geom_point(aes(x=km.out$center[1,1],y=km.out$center[1,2]),size=4,color="black")+geom_point(aes(x=km.out$center[2,1],y=km.out$center[2,2]),size=4,color="black")+ annotate("text", x=km.out$center[1,1],y=km.out$center[1,2]-0.2, label = "Centroid 1")+ annotate("text", x=km.out$center[2,1],y=km.out$center[2,2]-0.2, label = "Centroid 2")+ggtitle("k-means clustering, k=2")+ theme(plot.title = element_text(size = rel(2)))
+In max-distance method, it to have a more "cluster-like" dendrogram compared to average-distance method.
 
+I can individuate clusters in Hierachical clustering similar in K-means clustering. However, it's more difficult now. In K-means clustering, since there aren't any "Subgroup", the interpretation is straightforward -- simply summarize the centroids. However, in Hierachical clustering, groups, except leaves, are always subgroups of more general groups. In Hierachical clustering, we can clearly see that food with high Protein and Fat are grouped together. The h-cluster algorithm also does a good job on split seafood from the others.
 
-#According to the parallel coordinate plot of the centroids, we noticed that:
-
-#Group 1 has high Calcium and very low Iron.
-
-#Group 2 has high Protein and low Calcium.
-
-#Group 3 has very low Protein, energy and fat, and very high Calcium and Iron.
-
-#Group 4 has very high Energy and Fat, but very low Calcium.
-```
-
+## Question 2
 ```{r}
 pr.out = prcomp(food.data[1:5], center = T, scale=T)
 summary(pr.out)
 # The first 4 PC explained 99.97% of the variance
 library(ggbiplot)
-
 # Use ggbiplot to create PCA graph
 ggbiplot(pr.out, obs.scale = 1, var.scale = 1, 
          ellipse = TRUE, circle = TRUE) +
   scale_color_discrete(name = '') +
   theme(legend.direction = 'horizontal', legend.position = 'top')
-
 pr.out
 ```
 
+By PCA, we noticed that the first 4 principle components expained more than 99% of the variance in the data. And the grouping is similar to the results we obtained using other methods.
 
+In PC1, Energy and Fat are very important. This is similar to the Hierachical clustering, which seperates high fat/energy fooe, e.g. roast beef, from other food.
 
+In PC2, Iron and Protein are very important. This is leads to the seperation of "Clams" from other food since clams has very low Protein, but very high Iron.
 
+In PC3, Calcium and Iron plays a big role. This distinction seperates "Canned finshes" from other food.
+
+In PC4, Calcium and Protein explained the rest of variability.
+
+I prefer hierachical clustering, because K-means clustering is too general and PCA is only a measure of variance which don't provide any clustering by itself.
+
+## Question 3
+```{r}
+dissmilarity = matrix(c(0,0.3,0.4,0.7,0.3,0,0.5,0.8,0.4,0.5,0,0.45,0.7,0.8,0.45,0),nrow = 4)
+clust.dist = hclust(as.dist(dissmilarity),method = "complete")
+plot(clust.dist)
+```
+
+If we only want 2 cluster, then observation 1 and 2 will be in the same cluster, while observation 3 and 4 will be in another cluster.
+
+```{r,echo=F}
+#sorted = food.data[order(-food.data$Calcium,-food.data$Protein),]
+#sorted
+#colnames(food.data)
+# This seperates "Canned tuna" and "Broiled mackerel" from the "beefish" food. Tuna and mackerel were originally clusterd with beef and pork because they have low Calcium and iron. However, if the Protein
+```
